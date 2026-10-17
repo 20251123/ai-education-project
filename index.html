@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="免費、開放原始碼的 AI 基礎知識互動測驗，適合教師與學生使用。">
+  <title>AI 基礎知識互動測驗｜開放原始碼教學</title>
+  <style>
+    :root { font-family: system-ui, "Noto Sans TC", sans-serif; color: #18263a; background: #f4f7fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; line-height: 1.7; }
+    header { padding: 42px 18px 60px; text-align: center; color: white;
+      background: linear-gradient(120deg, #174c89, #087b87); }
+    header h1 { margin: 0 0 8px; font-size: clamp(1.7rem, 4vw, 2.5rem); }
+    header p { margin: 0; opacity: .95; }
+    main { width: min(760px, 92%); margin: -32px auto 32px; position: relative; }
+    .card { background: white; padding: clamp(22px, 5vw, 38px); border-radius: 20px;
+      box-shadow: 0 14px 36px #17324a1a; }
+    .topline { display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; margin-bottom: 10px; color: #496176; font-weight: 650; }
+    .track { height: 9px; background: #e5edf2; border-radius: 99px; overflow: hidden; }
+    .bar { width: 0; height: 100%; background: #088b80; transition: width .25s; }
+    h2 { font-size: 1.25rem; line-height: 1.5; margin: 24px 0 20px; }
+    .options { display: grid; gap: 12px; }
+    .option { width: 100%; padding: 14px 16px; border: 2px solid #dce6ed;
+      border-radius: 12px; background: #fff; color: #18263a; font: inherit;
+      text-align: left; cursor: pointer; }
+    .option:hover:not(:disabled), .option:focus-visible { border-color: #087b87; background: #f0fbfa; }
+    .option:disabled { cursor: default; opacity: 1; }
+    .option.correct { background: #e7f6ef; border-color: #13855a; }
+    .option.wrong { background: #fff0ed; border-color: #cf554c; }
+    .feedback { margin-top: 20px; padding: 15px 18px; background: #f0f6fa;
+      border-left: 4px solid #087b87; border-radius: 8px; }
+    .feedback strong { display: block; margin-bottom: 4px; }
+    .actions { display: flex; justify-content: flex-end; margin-top: 20px; }
+    .primary { padding: 11px 22px; color: #fff; background: #087b87;
+      border: none; border-radius: 10px; font: inherit; font-weight: 700; cursor: pointer; }
+    .primary:disabled { background: #9bacb6; cursor: not-allowed; }
+    .primary:hover:not(:disabled) { background: #06646e; }
+    .result { text-align: center; }
+    .score { font-size: 3rem; font-weight: 800; color: #087b87; margin: 12px 0; }
+    footer { text-align: center; color: #536679; font-size: .9rem;
+      padding: 0 16px 32px; }
+    a { color: #087b87; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🤖 AI 基礎知識互動測驗</h1>
+    <p>5 道題目，認識人工智慧、機器學習與生成式 AI</p>
+  </header>
+
+  <main>
+    <section class="card" id="quiz" aria-label="互動測驗">
+      <div class="topline">
+        <span id="progress">第 1 題／共 5 題</span>
+        <span id="points">答對 0 題</span>
+      </div>
+      <div class="track" aria-hidden="true"><div class="bar" id="bar"></div></div>
+      <h2 id="question"></h2>
+      <div id="options" class="options" role="group" aria-label="答案選項"></div>
+      <div id="feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+      <div class="actions"><button class="primary" id="next" disabled>下一題 →</button></div>
+    </section>
+
+    <section class="card result" id="result" hidden aria-live="polite">
+      <h2>🎉 測驗完成！</h2>
+      <div class="score" id="finalScore"></div>
+      <p id="summary"></p>
+      <button class="primary" id="restart">重新測驗</button>
+    </section>
+  </main>
+
+  <footer>
+    <p>免費教學範例 · 原始碼採 MIT License</p>
+    <p><a href="https://github.com/20251123/ai-education-project" target="_blank" rel="noopener noreferrer">查看 GitHub 專案</a>
+      · <a href="https://www.netlify.com/" target="_blank" rel="noopener noreferrer">Powered by Netlify</a></p>
+  </footer>
+
+  <script>
+    const questions = [
+      {
+        question: "下列哪一項最符合『人工智慧（AI）』的概念？",
+        options: ["只會儲存檔案的軟體", "讓電腦執行需要智慧判斷的任務", "電腦螢幕的顯示技術", "一種網路線"],
+        answer: 1,
+        explanation: "人工智慧是讓電腦系統執行辨識、推論、語言理解等通常需要人類智慧的任務。"
+      },
+      {
+        question: "『機器學習』通常如何改善模型的表現？",
+        options: ["只要換新鍵盤", "透過資料訓練找出規律", "將檔名改成 AI", "不需要任何資料或回饋"],
+        answer: 1,
+        explanation: "機器學習讓模型從資料中學習模式，再運用於分類、預測等任務。"
+      },
+      {
+        question: "下列哪一項是『生成式 AI』的常見應用？",
+        options: ["產生文章與圖片", "更換電腦電源線", "擦拭鏡頭", "增加桌面大小"],
+        answer: 0,
+        explanation: "生成式 AI 可以依據提示產生文字、圖片、程式碼等內容，仍需人工檢查品質與正確性。"
+      },
+      {
+        question: "當 AI 提供看似合理但實際錯誤的資訊時，常稱為什麼？",
+        options: ["資料備份", "網頁排版", "AI 幻覺", "雲端同步"],
+        answer: 2,
+        explanation: "AI 幻覺是指模型產生不正確或缺乏根據的內容。重要資訊應查證可靠來源。"
+      },
+      {
+        question: "『自然語言處理（NLP）』主要處理哪一類資料？",
+        options: ["只有電池電壓", "文字及人類語言", "只有馬達轉速", "只有螢幕亮度"],
+        answer: 1,
+        explanation: "自然語言處理研究電腦如何分析、理解及產生人類語言，例如文字分類與問答。"
+      }
+    ];
+
+    const $ = id => document.getElementById(id);
+    let current = 0;
+    let score = 0;
+    let answered = false;
+
+    function showQuestion() {
+      answered = false;
+      const item = questions[current];
+      $("progress").textContent = `第 ${current + 1} 題／共 ${questions.length} 題`;
+      $("points").textContent = `答對 ${score} 題`;
+      $("bar").style.width = `${(current / questions.length) * 100}%`;
+      $("question").textContent = item.question;
+      $("options").replaceChildren();
+      $("feedback").hidden = true;
+      $("next").disabled = true;
+      $("next").textContent = current === questions.length - 1 ? "查看結果 →" : "下一題 →";
+
+      item.options.forEach((choice, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "option";
+        button.textContent = `${String.fromCharCode(65 + index)}. ${choice}`;
+        button.addEventListener("click", () => choose(index));
+        $("options").appendChild(button);
+      });
+    }
+
+    function choose(index) {
+      if (answered) return;
+      answered = true;
+      const item = questions[current];
+      const isCorrect = index === item.answer;
+      if (isCorrect) score++;
+
+      [...$("options").children].forEach((button, i) => {
+        button.disabled = true;
+        if (i === item.answer) button.classList.add("correct");
+        else if (i === index) button.classList.add("wrong");
+      });
+      const feedback = $("feedback");
+      feedback.replaceChildren();
+      const title = document.createElement("strong");
+      title.textContent = isCorrect ? "✅ 答對了！" : "📘 再學一個觀念！";
+      const explanation = document.createElement("span");
+      explanation.textContent = item.explanation;
+      feedback.append(title, explanation);
+      feedback.hidden = false;
+      $("points").textContent = `答對 ${score} 題`;
+      $("bar").style.width = `${((current + 1) / questions.length) * 100}%`;
+      $("next").disabled = false;
+    }
+
+    $("next").addEventListener("click", () => {
+      if (!answered) return;
+      current++;
+      if (current < questions.length) {
+        showQuestion();
+      } else {
+        $("quiz").hidden = true;
+        $("result").hidden = false;
+        $("finalScore").textContent = `${score} / ${questions.length}`;
+        $("summary").textContent = score === questions.length
+          ? "太棒了！你已掌握這份 AI 基礎測驗的所有觀念。"
+          : "完成學習！你可以再挑戰一次，搭配每題的解釋複習。";
+      }
+    });
+
+    $("restart").addEventListener("click", () => {
+      current = 0;
+      score = 0;
+      $("result").hidden = true;
+      $("quiz").hidden = false;
+      showQuestion();
+    });
+
+    showQuestion();
+  </script>
+</body>
+</html>
